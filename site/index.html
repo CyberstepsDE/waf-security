@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>From the Edge to Your App</title>
+<meta name="description" content="A walkthrough and live-lab companion for the WAF security session: six Azure layers a request survives before it reaches your code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  /* Layout concept: sticky nav → hero with an interactive request-journey rail →
+     a session plan strip → six stacked phase sections → WAF demo with mode tabs →
+     Red/Blue challenge → cost+cleanup. Dark-first, deck-matched purple identity. */
+  :root {
+    --bg: #14141c;
+    --surface: #1e1e28;
+    --surface-2: #262633;
+    --surface-3: #2f2f3e;
+    --fg: #ededf3;
+    --muted: #9b9bac;
+    --faint: #6f6f80;
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.18);
+    --accent: #8c6ff0;
+    --accent-soft: #c6b6ff;
+    --accent-dim: rgba(140,111,240,0.16);
+    --electric: #27d996;
+    --pink: #ff93d8;
+    --danger: #ff7a7a;
+    --code-bg: #101017;
+    --font-display: "Archivo", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --maxw: 1100px;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f2f8;
+    --surface: #ffffff;
+    --surface-2: #f6f5fb;
+    --surface-3: #eceaf5;
+    --fg: #1d1d28;
+    --muted: #5c5c6e;
+    --faint: #8a8a9a;
+    --border: rgba(20,20,28,0.12);
+    --border-strong: rgba(20,20,28,0.22);
+    --accent: #6b4fd6;
+    --accent-soft: #6b4fd6;
+    --accent-dim: rgba(107,79,214,0.12);
+    --electric: #0f9c67;
+    --pink: #c23ba0;
+    --danger: #c83b3b;
+    --code-bg: #15151f;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  img { max-width: 100%; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+  a { color: var(--accent-soft); }
+  code, .mono { font-family: var(--font-mono); }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding-inline: 20px; }
+
+  /* ---- nav ---- */
+  .nav {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-in { display: flex; align-items: center; gap: 18px; height: 60px; }
+  .brand { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+  .brand .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-dim); }
+  .nav-links { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 7px 11px; border-radius: 8px; }
+  .nav-links a:hover { color: var(--fg); background: var(--surface-2); }
+  .theme-btn { background: var(--surface-2); color: var(--fg); border: 1px solid var(--border); border-radius: 9px; height: 36px; width: 36px; cursor: pointer; font-size: 15px; display: grid; place-items: center; flex: none; }
+  .theme-btn:hover { border-color: var(--border-strong); }
+  @media (max-width: 720px) { .nav-links { display: none; } }
+
+  /* ---- hero ---- */
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
+  .hero::before {
+    content: ""; position: absolute; right: -160px; top: -160px; width: 520px; height: 520px;
+    border-radius: 50%; background: var(--accent); opacity: 0.18; filter: blur(8px);
+  }
+  .hero-in { padding-block: 64px 40px; position: relative; }
+  .eyebrow { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-soft); margin: 0 0 18px; }
+  .hero h1 { font-size: clamp(44px, 9vw, 92px); font-weight: 900; }
+  .hero h1 .pop { color: var(--accent-soft); }
+  .hero p.lede { font-size: clamp(17px, 2.4vw, 21px); color: var(--muted); max-width: 60ch; margin: 22px 0 0; }
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14.5px; text-decoration: none; padding: 12px 20px; border-radius: 11px; border: 1px solid transparent; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: color-mix(in srgb, var(--accent) 85%, #fff); }
+  .btn-ghost { border-color: var(--border-strong); color: var(--fg); background: transparent; }
+  .btn-ghost:hover { background: var(--surface-2); }
+
+  /* ---- journey rail ---- */
+  .journey { margin-top: 46px; }
+  .journey-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .journey-head .h { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+  .rail { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
+  .node { flex: 0 0 auto; display: flex; align-items: center; gap: 0; }
+  .node .stop {
+    width: 128px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 12px; text-align: center; cursor: pointer; transition: border-color .15s, transform .15s, background .15s;
+    text-decoration: none; color: inherit; display: block;
+  }
+  .node .stop:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .node .stop[data-defense="true"] { background: linear-gradient(180deg, var(--accent-dim), transparent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  .node .stop[data-final="true"] { border-color: color-mix(in srgb, var(--electric) 55%, var(--border)); }
+  .stop .num { font-family: var(--font-mono); font-size: 11px; color: var(--faint); }
+  .stop[data-defense="true"] .num { color: var(--accent-soft); }
+  .stop .nm { font-weight: 700; font-size: 14px; margin-top: 6px; font-family: var(--font-display); }
+  .stop .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .link { width: 26px; height: 2px; background: var(--border-strong); flex: none; align-self: center; }
+
+  /* ---- section scaffolding ---- */
+  section { padding-block: 56px; border-bottom: 1px solid var(--border); scroll-margin-top: 76px; }
+  .sec-eyebrow { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-soft); margin-bottom: 12px; }
+  .sec-title { font-size: clamp(28px, 5vw, 42px); font-weight: 800; }
+  .sec-intro { color: var(--muted); max-width: 64ch; margin-top: 14px; font-size: 17px; }
+
+  /* ---- session plan ---- */
+  .plan-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 30px; }
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 15px; position: relative; }
+  .step .k { font-family: var(--font-mono); font-size: 11px; color: var(--accent-soft); letter-spacing: 0.08em; }
+  .step .t { font-weight: 600; font-size: 14.5px; margin-top: 8px; }
+  .step .d { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+  @media (max-width: 860px) { .plan-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 440px) { .plan-grid { grid-template-columns: 1fr; } }
+
+  /* ---- phase cards ---- */
+  .phases { display: flex; flex-direction: column; gap: 18px; margin-top: 32px; }
+  .phase {
+    display: grid; grid-template-columns: 56px 1fr; gap: 20px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px;
+    scroll-margin-top: 80px;
+  }
+  .phase.core { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: linear-gradient(180deg, var(--accent-dim), transparent), var(--surface); }
+  .phase-badge { width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 22px; background: var(--surface-3); color: var(--accent-soft); border: 1px solid var(--border); }
+  .phase.core .phase-badge { background: var(--accent); color: #fff; border-color: transparent; }
+  .phase-final .phase-badge { color: var(--electric); }
+  .phase-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .phase-head h3 { font-size: 23px; font-weight: 800; }
+  .layer-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+  .tag-core { color: #fff; background: var(--accent); border-color: transparent; }
+  .tag-cost { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+  .phase p.what { color: var(--muted); margin: 12px 0 0; max-width: 62ch; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px; font-size: 13px; }
+  .meta .m { display: flex; flex-direction: column; gap: 1px; }
+  .meta .m .lab { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+  .meta .m .val { font-weight: 600; }
+  .meta .m .val.azure { color: var(--accent-soft); }
+  @media (max-width: 560px) { .phase { grid-template-columns: 1fr; gap: 14px; } }
+
+  /* ---- code block ---- */
+  .code { position: relative; background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px; margin-top: 16px; overflow: hidden; }
+  .code pre { margin: 0; padding: 16px 18px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.65; color: #e6e8f0; }
+  .code pre .c { color: #6f7486; }
+  .code pre .k { color: #9db2ff; }
+  .code pre .s { color: #ffc9ef; }
+  .code pre .n { color: #4fe0a0; }
+  .copy { position: absolute; top: 8px; right: 8px; background: var(--surface-3); color: var(--fg); border: 1px solid var(--border); border-radius: 7px; font-size: 11px; font-family: var(--font-mono); padding: 5px 9px; cursor: pointer; opacity: 0.85; }
+  .copy:hover { opacity: 1; border-color: var(--border-strong); }
+  .copy.ok { color: var(--electric); border-color: color-mix(in srgb, var(--electric) 50%, var(--border)); }
+
+  /* ---- waf demo tabs ---- */
+  .tabs { display: flex; gap: 8px; margin-top: 26px; flex-wrap: wrap; }
+  .tab { font-family: var(--font-body); font-weight: 600; font-size: 14px; padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; }
+  .tab[aria-selected="true"] { color: var(--fg); border-color: var(--accent); background: var(--accent-dim); }
+  .panel { margin-top: 18px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 760px) { .panel { grid-template-columns: 1fr; } }
+  .panel-note { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .panel-note h4 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .panel-note p { color: var(--muted); font-size: 14.5px; margin: 0; }
+  .verdict { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 12px; font-weight: 500; padding: 5px 11px; border-radius: 999px; margin-bottom: 14px; }
+  .v-pass { color: var(--electric); background: color-mix(in srgb, var(--electric) 14%, transparent); }
+  .v-block { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+
+  /* ---- compare table ---- */
+  .tbl-wrap { overflow-x: auto; margin-top: 24px; border: 1px solid var(--border); border-radius: 14px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
+  th, td { text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--border); }
+  thead th { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); background: var(--surface-2); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.good { color: var(--electric); font-weight: 600; }
+  td.bad { color: var(--danger); font-weight: 600; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---- challenge ---- */
+  .challenge { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 30px; }
+  @media (max-width: 760px) { .challenge { grid-template-columns: 1fr; } }
+  .round { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+  .round .r { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; letter-spacing: 0.05em; color: var(--accent-soft); }
+  .round h4 { font-size: 19px; font-weight: 800; margin: 8px 0; }
+  .round p { color: var(--muted); font-size: 14px; margin: 0; }
+  .scoring { margin-top: 18px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 26px; }
+  @media (max-width: 560px) { .scoring { grid-template-columns: 1fr; } }
+  .scoring .s { font-size: 13.5px; color: var(--muted); display: flex; gap: 9px; align-items: baseline; }
+  .scoring .s b { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+  .blue { color: #8fb8ff; } .red { color: var(--pink); }
+
+  /* ---- callout ---- */
+  .callout { display: flex; gap: 14px; align-items: flex-start; background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 16px; padding: 22px 24px; margin-top: 30px; }
+  .callout .bar { width: 4px; align-self: stretch; border-radius: 4px; background: var(--accent); flex: none; }
+  .callout p { margin: 0; font-size: 16px; }
+  .callout strong { color: var(--accent-soft); }
+
+  footer { padding-block: 40px 56px; }
+  footer .foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--faint); font-size: 13px; }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+  :focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-in">
+    <div class="brand"><span class="dot"></span> Edge&nbsp;→&nbsp;App</div>
+    <div class="nav-links">
+      <a href="#journey">The journey</a>
+      <a href="#plan">The session</a>
+      <a href="#phases">Phases</a>
+      <a href="#waf">WAF demo</a>
+      <a href="#challenge">Red vs Blue</a>
+    </div>
+    <button class="theme-btn" id="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-in">
+    <p class="eyebrow">Security for engineers · a hands-on Azure lab</p>
+    <h1>From the edge<br>to your <span class="pop">app</span></h1>
+    <p class="lede">Follow one request as it runs a gauntlet of defenses before it reaches your code. Six layers, each dropping a different class of threat — built as real Terraform you deploy, attack, and tear down.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#waf">Jump to the WAF demo →</a>
+      <a class="btn btn-ghost" href="#plan">What we'll do today</a>
+    </div>
+
+    <div class="journey" id="journey">
+      <div class="journey-head">
+        <span class="h">The journey of a request — tap a defense to jump to its phase</span>
+      </div>
+      <div class="rail" id="rail"><!-- rendered by script --></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="plan">
+    <div class="sec-eyebrow">What we're going to do now</div>
+    <h2 class="sec-title">The session, in six moves</h2>
+    <p class="sec-intro">We stop talking and build it. Each team deploys a real Application Gateway with a WAF in front of an app that has no public IP, attacks it, watches the logs, then flips the WAF to blocking and attacks again.</p>
+    <div class="plan-grid" id="plan-grid"><!-- rendered by script --></div>
+  </section>
+
+  <section id="phases">
+    <div class="sec-eyebrow">The gauntlet</div>
+    <h2 class="sec-title">Six layers, six Terraform phases</h2>
+    <p class="sec-intro">Every phase is a self-contained project you can deploy and destroy on its own. Phase 3 — the WAF on Application Gateway — is the heart of the lab and works end to end.</p>
+    <div class="phases" id="phase-list"><!-- rendered by script --></div>
+    <div class="callout">
+      <div class="bar"></div>
+      <p><strong>One prefix per team.</strong> Pass <code>-var="prefix=team1"</code>, <code>team2</code>, … so resources never collide — and set <code>ARM_SUBSCRIPTION_ID</code> to a sandbox subscription first. Everything bills by the hour: destroy it the same day.</p>
+    </div>
+  </section>
+
+  <section id="waf">
+    <div class="sec-eyebrow">Phase 3 · the centerpiece</div>
+    <h2 class="sec-title">The WAF reads the request itself</h2>
+    <p class="sec-intro">A network firewall asks <em>"which IP and port?"</em> A web application firewall asks <em>"what is this request actually trying to do?"</em> It reads the URL, headers, cookies and body and blocks known attack shapes — chiefly the OWASP Top 10. Start in Detection to learn real traffic, then switch to Prevention. Never block blind.</p>
+
+    <div class="tabs" role="tablist" aria-label="WAF mode">
+      <button class="tab" role="tab" id="tab-detect" aria-selected="true" aria-controls="p-detect">Round 1 · Detection</button>
+      <button class="tab" role="tab" id="tab-prevent" aria-selected="false" aria-controls="p-prevent">Round 2 · Prevention</button>
+    </div>
+
+    <div class="panel" id="p-detect" role="tabpanel" aria-labelledby="tab-detect">
+      <div>
+        <div class="code">
+          <button class="copy">copy</button>
+          <pre><span class="c"># deploy in Detection mode (log only)</span>
+<span class="k">terraform</span> apply -var=<span class="s">"prefix=team1"</span> -var=<span class="s">"waf_mode=Detection"</span>
+URL=$(<span class="k">terraform</span> output -raw app_url)
+
+<span class="c"># fire four attacks — all still return 200</span>
+<span class="k">curl</span> -i -G $URL --data-urlencode <span class="s">"id=1' OR '1'='1"</span>
+<span class="k">curl</span> -i -G $URL --data-urlencode <span class="s">"q=&lt;script&gt;alert(1)&lt;/script&gt;"</span>
+<span class="k">curl</span> -i --path-as-is <span class="s">"$URL/../../etc/passwd"</span>
+<span class="k">curl</span> -i -A <span class="s">"sqlmap/1.7"</span> $URL</pre>
+        </div>
+        <div class="code">
+          <button class="copy">copy</button>
+          <pre><span class="c"># then find yourself in the logs (Log Analytics · KQL)</span>
+AzureDiagnostics
+| <span class="k">where</span> Category == <span class="s">"ApplicationGatewayFirewallLog"</span>
+| <span class="k">project</span> TimeGenerated, clientIp_s, requestUri_s, ruleId_s, action_s
+| <span class="k">order by</span> TimeGenerated <span class="k">desc</span></pre>
+        </div>
+      </div>
+      <div class="panel-note">
+        <span class="verdict v-pass">● 200 · reaches the app</span>
+        <h4>See what would be blocked</h4>
+        <p>Every attack still succeeds, but each one is recorded with the rule ID that matched. That's the point of Detection: you learn real traffic without breaking anyone. Logs take a few minutes to appear.</p>
+      </div>
+    </div>
+
+    <div class="panel" id="p-prevent" role="tabpanel" aria-labelledby="tab-prevent" hidden>
+      <div>
+        <div class="code">
+          <button class="copy">copy</button>
+          <pre><span class="c"># flip one variable — only the WAF policy changes, in seconds</span>
+<span class="k">terraform</span> apply -var=<span class="s">"prefix=team1"</span> -var=<span class="s">"waf_mode=Prevention"</span>
+
+<span class="c"># rerun the Round 1 attacks → now 403 Forbidden, app never sees them</span>
+
+<span class="c"># rate limit: burst 150 requests, watch 200s turn to 403s</span>
+<span class="k">for</span> i <span class="k">in</span> $(seq 1 150); <span class="k">do</span>
+  <span class="k">curl</span> -s -o /dev/null -w <span class="s">"%{http_code}\n"</span> $URL
+<span class="k">done</span> | sort | uniq -c</pre>
+        </div>
+      </div>
+      <div class="panel-note">
+        <span class="verdict v-block">● 403 · blocked at the door</span>
+        <h4>Same attacks, stopped cold</h4>
+        <p>In Prevention the WAF logs <em>and</em> blocks. The injection, XSS, traversal and scanner probes get a 403 and never reach your code. The rate-limit rule caps each client at 100 req/min, so the burst flips to 403 once it crosses the line.</p>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>&nbsp;</th><th>Detection</th><th>Prevention</th></tr></thead>
+        <tbody>
+          <tr><td>Response</td><td class="tnum">200</td><td class="tnum bad">403</td></tr>
+          <tr><td>Reaches the app</td><td class="good">Yes</td><td class="bad">No</td></tr>
+          <tr><td>Logged</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Use it for</td><td>Learning traffic</td><td>Protecting</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="challenge">
+    <div class="sec-eyebrow">Group challenge · ~30 min</div>
+    <h2 class="sec-title">Red team vs Blue team</h2>
+    <p class="sec-intro">Pairs share one lab. Red attacks and hunts for bypasses; Blue detects and patches with Terraform custom rules. The instructor runs a steady "real user" at one request per second — block it, and Blue loses points. That's the real cost of a WAF: false positives.</p>
+    <div class="challenge">
+      <div class="round">
+        <div class="r">ROUND 1 · 10 MIN · DETECTION</div>
+        <h4>Spot the attack</h4>
+        <p>Red sends 5 attacks in any order. Blue finds each one in the logs and names the rule ID that caught it.</p>
+      </div>
+      <div class="round">
+        <div class="r">ROUND 2 · 10 MIN · PREVENTION</div>
+        <h4>Find a bypass</h4>
+        <p>Red tries to sneak a payload past — encoding, mixed case, moving it to a header or cookie. Blue closes each gap with a Terraform custom rule.</p>
+      </div>
+      <div class="round">
+        <div class="r">ROUND 3 · 5 MIN · RATE LIMIT</div>
+        <h4>Stop the flood, keep the user</h4>
+        <p>Red bursts traffic. Blue tunes the rate limit without blocking the instructor's real user at 1 request per second.</p>
+      </div>
+    </div>
+    <div class="scoring">
+      <div class="s"><b class="blue">+1 Blue</b> per attack named with its rule ID</div>
+      <div class="s"><b class="red">+2 Red</b> per bypass that gets a 200 in Prevention</div>
+      <div class="s"><b class="blue">+2 Blue</b> per bypass closed in Terraform</div>
+      <div class="s"><b class="red">−3 Blue</b> if the real user gets a 403</div>
+    </div>
+  </section>
+
+  <section id="cleanup" style="border-bottom:none;">
+    <div class="sec-eyebrow">Wrap up</div>
+    <h2 class="sec-title">Destroy it, then talk about it</h2>
+    <p class="sec-intro">Always tear it down — the gateway bills by the hour. Then debrief the lesson that matters most.</p>
+    <div class="code" style="max-width:560px;">
+      <button class="copy">copy</button>
+      <pre><span class="c"># every team, every phase folder you deployed</span>
+<span class="k">terraform</span> destroy -var=<span class="s">"prefix=team1"</span></pre>
+    </div>
+    <div class="callout">
+      <div class="bar"></div>
+      <p><strong>A WAF reduces risk. It does not replace validation and authorization in your code.</strong> No single control is the answer — the stack is. Learn the layer, and the cloud product is just a name.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div class="foot">
+    <span>Companion to the deck <strong style="color:var(--fg)">"From the Edge to Your App."</strong> Terraform lives in <code>lab/azure/</code>.</span>
+    <span>Azure first · AWS equivalents noted per phase</span>
+  </div>
+</footer>
+
+<script>
+  "use strict";
+
+  // ---- theme toggle (per-viewer convenience) ----
+  (function () {
+    var root = document.documentElement, key = "edge2app-theme";
+    try { var saved = localStorage.getItem(key); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+    document.getElementById("theme").addEventListener("click", function () {
+      var cur = root.getAttribute("data-theme");
+      var isDark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      var next = isDark ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem(key, next); } catch (e) {}
+    });
+  })();
+
+  // ---- data ----
+  var STOPS = [
+    { n: "", nm: "User", sub: "", defense: false },
+    { n: "01", nm: "DNS + CDN", sub: "edge", defense: true, target: "phase-1" },
+    { n: "02", nm: "DDoS", sub: "flood shield", defense: true, target: "phase-2" },
+    { n: "03", nm: "WAF", sub: "reads HTTP", defense: true, target: "phase-3" },
+    { n: "04", nm: "Load balancer", sub: "L4 / L7", defense: true, target: "phase-4" },
+    { n: "05", nm: "API gateway", sub: "auth + limits", defense: true, target: "phase-5" },
+    { n: "06", nm: "Your app", sub: "no public IP", defense: false, final: true, target: "phase-6" }
+  ];
+
+  var PLAN = [
+    { k: "MOVE 1", t: "Deploy", d: "terraform apply in Detection mode" },
+    { k: "MOVE 2", t: "Attack", d: "curl SQLi, XSS, traversal, scanner" },
+    { k: "MOVE 3", t: "Read logs", d: "find every hit in Log Analytics" },
+    { k: "MOVE 4", t: "Prevent", d: "flip one var, attack again → 403" },
+    { k: "MOVE 5", t: "Red vs Blue", d: "bypass hunt + rate-limit tuning" },
+    { k: "MOVE 6", t: "Destroy", d: "terraform destroy, debrief" }
+  ];
+
+  var PHASES = [
+    { id: "phase-1", num: "1", layer: "Layer 1 · the edge", title: "DNS + CDN", what: "DNS turns your name into an address; the CDN caches content near the user and hides your origin's real address, so most traffic never reaches you. The edge handles reach and volume, not payloads.",
+      azure: "Azure Front Door + DNS", aws: "Route 53 + CloudFront", time: "~3–5 min", cost: "pennies/hr",
+      cmd: "cd phase-1-dns-cdn\nterraform apply -var=\"prefix=team1\"" },
+    { id: "phase-2", num: "2", layer: "Layer 2 · volume", title: "DDoS Protection", what: "A DDoS attack is not clever, just huge. The cloud absorbs the flood on infrastructure far larger than yours, scrubs it upstream, and passes only clean traffic through.",
+      azure: "Azure DDoS Protection", aws: "AWS Shield", time: "~2 min", cost: "~$2,900/mo", costly: true,
+      cmd: "cd phase-2-ddos\n# the plan bills monthly — deploy, read, DESTROY\nterraform apply -var=\"prefix=team1\" \\\n  -var=\"i_understand_ddos_billing=true\"" },
+    { id: "phase-3", num: "3", layer: "Layer 3 · the WAF", title: "WAF on Application Gateway", what: "The centerpiece. An L7 load balancer hosting a WAF policy — OWASP 3.2 rules plus custom scanner and rate-limit rules — in front of a private container app with no public IP. Detection learns, Prevention blocks.",
+      azure: "App Gateway WAF_v2", aws: "AWS WAF + ALB", time: "~6–10 min", cost: "~$0.45/hr", core: true,
+      cmd: "cd phase-3-waf-appgw\nterraform apply -var=\"prefix=team1\" \\\n  -var=\"waf_mode=Detection\"" },
+    { id: "phase-4", num: "4", layer: "Layer 4 · distribution", title: "Load Balancer (L4)", what: "Spreads traffic across healthy backends by IP and port, and skips any that fail — fast and simple, but blind to what the request contains. The L7 flavor that understands HTTP is Phase 3.",
+      azure: "Azure Load Balancer", aws: "Network Load Balancer", time: "~3–5 min", cost: "pennies/hr",
+      cmd: "cd phase-4-load-balancer\nterraform apply -var=\"prefix=team1\"" },
+    { id: "phase-5", num: "5", layer: "Layer 5 · the front desk", title: "API Gateway", what: "Checks who you are (keys and tokens) and how much you can call (rate limits and quotas), behind one watched door. Here: API Management on the Consumption tier — 401 without a key, 429 over the limit.",
+      azure: "Azure API Management", aws: "Amazon API Gateway", time: "~5–10 min", cost: "pay/call",
+      cmd: "cd phase-5-api-gateway\nterraform apply -var=\"prefix=team1\"" },
+    { id: "phase-6", num: "6", layer: "The destination", title: "The private app", what: "Your code — a container with no public IP, in a private subnet. The easiest way around a WAF is to skip it, so the app never gets its own public door. Deploy it alone and prove there's nothing to curl.",
+      azure: "Container Instances", aws: "Private subnet, no IGW", time: "~1–2 min", cost: "pennies/hr", final: true,
+      cmd: "cd phase-6-private-app\nterraform apply -var=\"prefix=team1\"" }
+  ];
+
+  var esc = function (s) { return s.replace(/[&<>\"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); };
+
+  // ---- render journey rail ----
+  (function () {
+    var rail = document.getElementById("rail"), html = "";
+    STOPS.forEach(function (s, i) {
+      var tag = s.target ? "a" : "div", href = s.target ? ' href="#' + s.target + '"' : "";
+      html += '<div class="node">';
+      html += "<" + tag + ' class="stop"' + href + ' data-defense="' + !!s.defense + '" data-final="' + !!s.final + '">';
+      html += '<div class="num">' + (s.n || "·") + "</div>";
+      html += '<div class="nm">' + esc(s.nm) + "</div>";
+      if (s.sub) html += '<div class="sub">' + esc(s.sub) + "</div>";
+      html += "</" + tag + "></div>";
+      if (i < STOPS.length - 1) html += '<div class="link"></div>';
+    });
+    rail.innerHTML = html;
+  })();
+
+  // ---- render session plan ----
+  (function () {
+    document.getElementById("plan-grid").innerHTML = PLAN.map(function (p) {
+      return '<div class="step"><div class="k">' + esc(p.k) + '</div><div class="t">' + esc(p.t) + '</div><div class="d">' + esc(p.d) + "</div></div>";
+    }).join("");
+  })();
+
+  // ---- render phases ----
+  (function () {
+    document.getElementById("phase-list").innerHTML = PHASES.map(function (p) {
+      var cls = "phase" + (p.core ? " core" : "") + (p.final ? " phase-final" : "");
+      var tags = '<span class="layer-tag">' + esc(p.layer) + "</span>";
+      if (p.core) tags += '<span class="layer-tag tag-core">core lab</span>';
+      if (p.costly) tags += '<span class="layer-tag tag-cost">costs money</span>';
+      var lines = p.cmd.split("\n").map(function (ln) {
+        if (ln.trim().indexOf("#") === 0) return '<span class="c">' + esc(ln) + "</span>";
+        return esc(ln).replace(/^(cd|terraform)\b/, '<span class="k">$1</span>').replace(/(&quot;[^&]*?&quot;)/g, '<span class="s">$1</span>');
+      }).join("\n");
+      return '<article class="phase ' + cls + '" id="' + p.id + '">' +
+        '<div class="phase-badge">' + p.num + "</div>" +
+        '<div><div class="phase-head"><h3>' + esc(p.title) + "</h3>" + tags + "</div>" +
+        '<p class="what">' + esc(p.what) + "</p>" +
+        '<div class="meta">' +
+          '<div class="m"><span class="lab">Azure</span><span class="val azure">' + esc(p.azure) + "</span></div>" +
+          '<div class="m"><span class="lab">AWS equivalent</span><span class="val">' + esc(p.aws) + "</span></div>" +
+          '<div class="m"><span class="lab">Deploy time</span><span class="val">' + esc(p.time) + "</span></div>" +
+          '<div class="m"><span class="lab">Cost running</span><span class="val">' + esc(p.cost) + "</span></div>" +
+        "</div>" +
+        '<div class="code"><button class="copy">copy</button><pre>' + lines + "</pre></div>" +
+        "</div></article>";
+    }).join("");
+  })();
+
+  // ---- WAF tabs ----
+  (function () {
+    var tabs = [document.getElementById("tab-detect"), document.getElementById("tab-prevent")];
+    var panels = { "tab-detect": document.getElementById("p-detect"), "tab-prevent": document.getElementById("p-prevent") };
+    tabs.forEach(function (t) {
+      t.addEventListener("click", function () {
+        tabs.forEach(function (x) { x.setAttribute("aria-selected", x === t ? "true" : "false"); });
+        Object.keys(panels).forEach(function (id) { panels[id].hidden = (id !== t.id); });
+      });
+    });
+  })();
+
+  // ---- copy buttons ----
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".copy");
+    if (!btn) return;
+    var pre = btn.parentElement.querySelector("pre");
+    var text = pre ? pre.innerText : "";
+    var done = function () { btn.textContent = "copied"; btn.classList.add("ok"); setTimeout(function () { btn.textContent = "copy"; btn.classList.remove("ok"); }, 1400); };
+    try {
+      navigator.clipboard.writeText(text).then(done, function () {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); done();
+      });
+    } catch (err) {
+      var r2 = document.createRange(); r2.selectNodeContents(pre);
+      var s2 = getSelection(); s2.removeAllRanges(); s2.addRange(r2); done();
+    }
+  });
+</script>
+</body>
+</html>

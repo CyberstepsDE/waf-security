@@ -1,0 +1,21 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# macOS
+.DS_Store
+
+# The companion website is part of this repo (override any global ignore of site/)
+!site/
+!site/**
