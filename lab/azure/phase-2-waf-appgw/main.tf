@@ -13,6 +13,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
@@ -126,14 +130,23 @@ resource "azurerm_container_group" "app" {
 }
 
 # ---------------------------------------------------------------------------
-# Public IP for the gateway's frontend (the only public door)
+# Public IP for the gateway's frontend (the only public door).
+# A DNS label gives it a free, resolvable hostname:
+#   <prefix>-waf-<suffix>.<region>.cloudapp.azure.com
 # ---------------------------------------------------------------------------
+resource "random_string" "dns" {
+  length  = 4
+  special = false
+  upper   = false
+}
+
 resource "azurerm_public_ip" "gw" {
   name                = "${local.name}-gw-pip"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   allocation_method   = "Static"
   sku                 = "Standard"
+  domain_name_label   = "${var.prefix}-waf-${random_string.dns.result}"
   tags                = local.tags
 }
 
@@ -303,7 +316,17 @@ resource "azurerm_monitor_diagnostic_setting" "waf_logs" {
 # Outputs
 # ---------------------------------------------------------------------------
 output "app_url" {
-  description = "Public URL of the app, through the gateway."
+  description = "Public URL of the app, through the gateway (DNS hostname)."
+  value       = "http://${azurerm_public_ip.gw.fqdn}"
+}
+
+output "app_fqdn" {
+  description = "Resolvable DNS name of the gateway."
+  value       = azurerm_public_ip.gw.fqdn
+}
+
+output "app_url_ip" {
+  description = "Same thing by raw IP."
   value       = "http://${azurerm_public_ip.gw.ip_address}"
 }
 
