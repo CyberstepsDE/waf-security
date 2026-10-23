@@ -16,7 +16,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
     random = {
       source  = "hashicorp/random"
@@ -68,7 +68,7 @@ locals {
   name = var.prefix
   tags = {
     lab   = "waf-edge-to-app"
-    phase = "5-api-gateway"
+    phase = "4-api-gateway"
     team  = var.prefix
   }
 }

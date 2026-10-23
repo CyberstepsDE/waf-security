@@ -1,4 +1,4 @@
-# Phase 5 · API Gateway (the front desk)
+# Phase 4 · API Gateway (the front desk)
 
 The last stop before your code. The API gateway is the front desk for your APIs. It checks **who
 you are** (authentication), enforces **how much** you can call (rate limits and quotas), and gives
@@ -16,7 +16,7 @@ It stops credential stuffing and quota abuse.
 
 ```bash
 export ARM_SUBSCRIPTION_ID=<sandbox-subscription-id>
-cd phase-5-api-gateway
+cd phase-4-api-gateway
 
 terraform init
 terraform apply -var="prefix=team1"    # ~5-10 min (Consumption is far faster than Developer tier)
@@ -57,7 +57,7 @@ add `<ip-filter>` to allow-list callers.
 
 ## Where this sits vs the WAF
 
-The WAF (Phase 3) asks *"is this request shaped like an attack?"* The API gateway asks *"are you
+The WAF (Phase 2) asks *"is this request shaped like an attack?"* The API gateway asks *"are you
 allowed to call, and how often?"* Different questions — you usually want both. In a full design the
 gateway sits behind the WAF/App Gateway, so traffic is scrubbed **before** the front desk checks ID.
 

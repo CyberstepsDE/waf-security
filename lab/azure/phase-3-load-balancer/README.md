@@ -1,4 +1,4 @@
-# Phase 4 · Load Balancer — L4 (distribution)
+# Phase 3 · Load Balancer — L4 (distribution)
 
 A request's fourth stop. A load balancer spreads traffic across healthy servers so no single box
 is overwhelmed, and skips any that fail. Two flavors:
@@ -6,7 +6,7 @@ is overwhelmed, and skips any that fail. Two flavors:
 - **L4 · transport (this phase)** — routes by **IP and port**. Fast and simple, but blind to what
   the request contains.
 - **L7 · application** — understands HTTP: routes by path, terminates TLS, hosts the WAF. *That's
-  Phase 3's Application Gateway.* For web apps you usually want L7.
+  Phase 2's Application Gateway.* For web apps you usually want L7.
 
 This phase stands up the **L4** flavor so you can see the other half of the picture.
 
@@ -26,7 +26,7 @@ This phase stands up the **L4** flavor so you can see the other half of the pict
 
 ```bash
 export ARM_SUBSCRIPTION_ID=<sandbox-subscription-id>
-cd phase-4-load-balancer
+cd phase-3-load-balancer
 
 terraform init
 terraform apply -var="prefix=team1"
@@ -45,7 +45,7 @@ curl -i $URL         # answered by one of the backends
 
 ## L4 vs L7 — the point of this phase
 
-| | L4 (this phase) | L7 (Phase 3) |
+| | L4 (this phase) | L7 (Phase 2) |
 |---|---|---|
 | Routes by | IP + port | URL path, headers |
 | Understands HTTP? | No | Yes |
@@ -55,7 +55,7 @@ curl -i $URL         # answered by one of the backends
 | Use it for | Raw TCP/UDP, extreme throughput | Web apps (usually this) |
 
 An L4 balancer can't help a WAF because it never reads the request. That's exactly why the WAF
-lives on the **L7** Application Gateway in Phase 3.
+lives on the **L7** Application Gateway in Phase 2.
 
 ## Cleanup
 

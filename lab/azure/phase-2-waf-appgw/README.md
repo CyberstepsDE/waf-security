@@ -1,4 +1,4 @@
-# Phase 3 · WAF on Application Gateway
+# Phase 2 · WAF on Application Gateway
 
 > **This is the deck's core lab (`lab/azure/main.tf`).** If you run one phase, run this one.
 
@@ -25,7 +25,7 @@ cookies and body and blocks known attack shapes — chiefly the OWASP Top 10.
 
 ```bash
 export ARM_SUBSCRIPTION_ID=<sandbox-subscription-id>
-cd phase-3-waf-appgw
+cd phase-2-waf-appgw
 
 terraform init
 terraform apply -var="prefix=team1" -var="waf_mode=Detection"
@@ -88,17 +88,6 @@ done | sort | uniq -c
 | Reaches the app| Yes       | **No**     |
 | Logged         | Yes       | Yes        |
 | Use it for     | Learning traffic | Protecting |
-
-## Group challenge — Red vs Blue (~30 min)
-
-Pairs share one lab. Three timed rounds:
-
-1. **Detection (10 min)** — Red sends 5 attacks; Blue finds each in the logs and names the rule ID. *+1 Blue each.*
-2. **Prevention (10 min)** — Red finds a bypass (encoding, mixed case, moving the payload to a header/cookie); Blue closes it with a Terraform custom rule. *+2 Red per 200 in Prevention, +2 Blue per bypass closed.*
-3. **Rate limit (5 min)** — Red bursts traffic; Blue tunes the limit **without** blocking the instructor's "real user" at 1 req/sec. *−3 Blue if the real user gets a 403.*
-
-Blue edits the `custom_rules` blocks in `main.tf` and re-applies. That false-positive penalty
-is the real lesson: a WAF that blocks real users is worse than no WAF.
 
 ## Cleanup
 

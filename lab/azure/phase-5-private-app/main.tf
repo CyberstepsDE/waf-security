@@ -15,7 +15,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
   }
 }
@@ -44,7 +44,7 @@ locals {
   name = var.prefix
   tags = {
     lab   = "waf-edge-to-app"
-    phase = "6-private-app"
+    phase = "5-private-app"
     team  = var.prefix
   }
 }

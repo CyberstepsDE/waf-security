@@ -1,4 +1,4 @@
-# Phase 6 · The app (the thing being protected)
+# Phase 5 · The app (the thing being protected)
 
 The request's final destination: **your code**. Every layer in front of it exists to make sure it
 only ever meets clean traffic. In this lab the app is a container with **no public IP**, in a
@@ -14,7 +14,7 @@ to attack.
 
 ```bash
 export ARM_SUBSCRIPTION_ID=<sandbox-subscription-id>
-cd phase-6-private-app
+cd phase-5-private-app
 
 terraform init
 terraform apply -var="prefix=team1"
@@ -32,13 +32,13 @@ curl --max-time 5 http://$IP     # from your laptop / Cloud Shell: times out. It
 ```
 
 There's no public IP, no DNS name, no open port on the internet. The only way in is from **inside**
-the VNet — which is exactly where a gateway you control (Phase 3) sits. That's the whole reason the
+the VNet — which is exactly where a gateway you control (Phase 2) sits. That's the whole reason the
 WAF works: **the easiest way around a WAF is to skip it**, and here there's nothing to skip to.
 
 ## Why this is its own phase
 
 It's the first thing you build and the last thing a request reaches. Standing it up alone makes the
-rule concrete before you add any defense: *the app never gets its own public door.* Phase 3 bundles
+rule concrete before you add any defense: *the app never gets its own public door.* Phase 2 bundles
 this same app with a gateway in front; this phase is the "before" picture.
 
 > **Debrief question:** what breaks if the app gets its own public IP? (Answer: every layer in front

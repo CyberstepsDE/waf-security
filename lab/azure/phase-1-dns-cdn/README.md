@@ -30,11 +30,11 @@ curl -i $URL          # served from the edge; caches on repeat hits
 By default the origin is a public HTTPS site so it works standalone. The point to show is that
 clients only ever see the Front Door hostname — never the origin.
 
-## Chain it onto Phase 3 (optional)
+## Chain it onto Phase 2 (optional)
 
 Put the edge in front of your WAF gateway:
 
-1. Deploy Phase 3, grab its IP: `terraform -chdir=../phase-3-waf-appgw output -raw gateway_public_ip`
+1. Deploy Phase 2, grab its IP: `terraform -chdir=../phase-2-waf-appgw output -raw gateway_public_ip`
 2. Re-apply here with that origin, and switch the origin to HTTP (the gateway listens on :80):
    ```bash
    terraform apply -var="prefix=team1" -var="origin_host_name=<gateway-ip>"
@@ -53,7 +53,7 @@ terraform output dns_name_servers   # delegate your domain to these
 
 Front Door can also host a WAF (`azurerm_cdn_frontdoor_firewall_policy`). The **managed** OWASP
 (DRS) rule set requires the **Premium** tier; **Standard** supports custom rules only. We run the
-WAF on Application Gateway in Phase 3 to keep this phase cheap and focused on the edge.
+WAF on Application Gateway in Phase 2 to keep this phase cheap and focused on the edge.
 
 ## Cleanup
 

@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>From the Edge to Your App</title>
-<meta name="description" content="A walkthrough and live-lab companion for the WAF security session: six Azure layers a request survives before it reaches your code.">
+<meta name="description" content="A walkthrough and live-lab companion for the WAF security session: five Azure layers a request survives before it reaches your code.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 
 <style>
-  /* Layout concept: sticky nav → hero with an interactive request-journey rail →
-     a session plan strip → six stacked phase sections → WAF demo with mode tabs →
-     Red/Blue challenge → cost+cleanup. Dark-first, deck-matched purple identity. */
+  /* Layout: sticky nav → hero with an interactive request-journey rail → a session
+     plan strip → five stacked phase sections, each with its own flow diagram and a
+     short explanation → WAF demo with mode tabs → cost + cleanup. Dark-first, deck
+     purple identity. */
   :root {
     --bg: #14141c;
     --surface: #1e1e28;
@@ -22,7 +23,7 @@
     --muted: #9b9bac;
     --faint: #6f6f80;
     --border: rgba(255,255,255,0.10);
-    --border-strong: rgba(255,255,255,0.18);
+    --border-strong: rgba(255,255,255,0.20);
     --accent: #8c6ff0;
     --accent-soft: #c6b6ff;
     --accent-dim: rgba(140,111,240,0.16);
@@ -45,7 +46,7 @@
     --muted: #5c5c6e;
     --faint: #8a8a9a;
     --border: rgba(20,20,28,0.12);
-    --border-strong: rgba(20,20,28,0.22);
+    --border-strong: rgba(20,20,28,0.24);
     --accent: #6b4fd6;
     --accent-soft: #6b4fd6;
     --accent-dim: rgba(107,79,214,0.12);
@@ -117,7 +118,7 @@
   .rail { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
   .node { flex: 0 0 auto; display: flex; align-items: center; gap: 0; }
   .node .stop {
-    width: 128px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    width: 132px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
     padding: 14px 12px; text-align: center; cursor: pointer; transition: border-color .15s, transform .15s, background .15s;
     text-decoration: none; color: inherit; display: block;
   }
@@ -128,7 +129,7 @@
   .stop[data-defense="true"] .num { color: var(--accent-soft); }
   .stop .nm { font-weight: 700; font-size: 14px; margin-top: 6px; font-family: var(--font-display); }
   .stop .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
-  .link { width: 26px; height: 2px; background: var(--border-strong); flex: none; align-self: center; }
+  .link { width: 30px; height: 2px; background: var(--border-strong); flex: none; align-self: center; }
 
   /* ---- section scaffolding ---- */
   section { padding-block: 56px; border-bottom: 1px solid var(--border); scroll-margin-top: 76px; }
@@ -138,7 +139,7 @@
 
   /* ---- session plan ---- */
   .plan-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 30px; }
-  .step { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 15px; position: relative; }
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 16px 15px; }
   .step .k { font-family: var(--font-mono); font-size: 11px; color: var(--accent-soft); letter-spacing: 0.08em; }
   .step .t { font-weight: 600; font-size: 14.5px; margin-top: 8px; }
   .step .d { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
@@ -160,14 +161,29 @@
   .phase-head h3 { font-size: 23px; font-weight: 800; }
   .layer-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
   .tag-core { color: #fff; background: var(--accent); border-color: transparent; }
-  .tag-cost { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
-  .phase p.what { color: var(--muted); margin: 12px 0 0; max-width: 62ch; }
-  .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px; font-size: 13px; }
+  .phase p.what { color: var(--fg); margin: 12px 0 0; max-width: 64ch; font-weight: 500; }
+  .phase .detail { color: var(--muted); font-size: 14.5px; margin: 12px 0 0; max-width: 66ch; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-size: 13px; }
   .meta .m { display: flex; flex-direction: column; gap: 1px; }
   .meta .m .lab { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
   .meta .m .val { font-weight: 600; }
   .meta .m .val.azure { color: var(--accent-soft); }
   @media (max-width: 560px) { .phase { grid-template-columns: 1fr; gap: 14px; } }
+
+  /* ---- flow diagram ---- */
+  .diagram { margin-top: 18px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 440px; height: auto; font-family: var(--font-body); }
+  .dg-box { fill: var(--surface); stroke: var(--border-strong); stroke-width: 1.5; }
+  .dg-box.accent { fill: var(--accent-dim); stroke: var(--accent); }
+  .dg-box.app { fill: color-mix(in srgb, var(--electric) 16%, transparent); stroke: var(--electric); }
+  .dg-box.threat { fill: color-mix(in srgb, var(--danger) 14%, transparent); stroke: var(--danger); }
+  .dg-t { fill: var(--fg); font-weight: 600; }
+  .dg-s { fill: var(--muted); }
+  .dg-line { stroke: var(--border-strong); }
+  .dg-arrow { fill: var(--border-strong); }
+  .dg-badge-good { fill: var(--electric); }
+  .dg-badge-bad { fill: var(--danger); }
+  .dg-badge-txt { fill: #fff; font-weight: 700; }
 
   /* ---- code block ---- */
   .code { position: relative; background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px; margin-top: 16px; overflow: hidden; }
@@ -203,19 +219,6 @@
   td.bad { color: var(--danger); font-weight: 600; }
   .tnum { font-variant-numeric: tabular-nums; }
 
-  /* ---- challenge ---- */
-  .challenge { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 30px; }
-  @media (max-width: 760px) { .challenge { grid-template-columns: 1fr; } }
-  .round { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
-  .round .r { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; letter-spacing: 0.05em; color: var(--accent-soft); }
-  .round h4 { font-size: 19px; font-weight: 800; margin: 8px 0; }
-  .round p { color: var(--muted); font-size: 14px; margin: 0; }
-  .scoring { margin-top: 18px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 26px; }
-  @media (max-width: 560px) { .scoring { grid-template-columns: 1fr; } }
-  .scoring .s { font-size: 13.5px; color: var(--muted); display: flex; gap: 9px; align-items: baseline; }
-  .scoring .s b { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
-  .blue { color: #8fb8ff; } .red { color: var(--pink); }
-
   /* ---- callout ---- */
   .callout { display: flex; gap: 14px; align-items: flex-start; background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 16px; padding: 22px 24px; margin-top: 30px; }
   .callout .bar { width: 4px; align-self: stretch; border-radius: 4px; background: var(--accent); flex: none; }
@@ -240,7 +243,7 @@
       <a href="#plan">The session</a>
       <a href="#phases">Phases</a>
       <a href="#waf">WAF demo</a>
-      <a href="#challenge">Red vs Blue</a>
+      <a href="#cleanup">Cleanup</a>
     </div>
     <button class="theme-btn" id="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button>
   </div>
@@ -250,7 +253,7 @@
   <div class="wrap hero-in">
     <p class="eyebrow">Security for engineers · a hands-on Azure lab</p>
     <h1>From the edge<br>to your <span class="pop">app</span></h1>
-    <p class="lede">Follow one request as it runs a gauntlet of defenses before it reaches your code. Six layers, each dropping a different class of threat — built as real Terraform you deploy, attack, and tear down.</p>
+    <p class="lede">Follow one request as it runs a gauntlet of defenses before it reaches your code. Five layers, each dropping a different class of threat — built as real Terraform you deploy, attack, and tear down.</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="#waf">Jump to the WAF demo →</a>
       <a class="btn btn-ghost" href="#plan">What we'll do today</a>
@@ -276,17 +279,17 @@
 
   <section id="phases">
     <div class="sec-eyebrow">The gauntlet</div>
-    <h2 class="sec-title">Six layers, six Terraform phases</h2>
-    <p class="sec-intro">Every phase is a self-contained project you can deploy and destroy on its own. Phase 3 — the WAF on Application Gateway — is the heart of the lab and works end to end.</p>
+    <h2 class="sec-title">Five layers, five Terraform phases</h2>
+    <p class="sec-intro">Every phase is a self-contained project you can deploy and destroy on its own — each with a diagram of what the request meets there. Phase 2 — the WAF on Application Gateway — is the heart of the lab and works end to end.</p>
     <div class="phases" id="phase-list"><!-- rendered by script --></div>
     <div class="callout">
       <div class="bar"></div>
-      <p><strong>One prefix per team.</strong> Pass <code>-var="prefix=team1"</code>, <code>team2</code>, … so resources never collide — and set <code>ARM_SUBSCRIPTION_ID</code> to a sandbox subscription first. Everything bills by the hour: destroy it the same day.</p>
+      <p><strong>One prefix per team.</strong> Pass <code>-var="prefix=team1"</code>, <code>team2</code>, … so resources never collide — and set <code>ARM_SUBSCRIPTION_ID</code> to a sandbox subscription first. Or deploy the lot with <code>./create-all.sh team1</code>. Everything bills by the hour: destroy it the same day.</p>
     </div>
   </section>
 
   <section id="waf">
-    <div class="sec-eyebrow">Phase 3 · the centerpiece</div>
+    <div class="sec-eyebrow">Phase 2 · the centerpiece</div>
     <h2 class="sec-title">The WAF reads the request itself</h2>
     <p class="sec-intro">A network firewall asks <em>"which IP and port?"</em> A web application firewall asks <em>"what is this request actually trying to do?"</em> It reads the URL, headers, cookies and body and blocks known attack shapes — chiefly the OWASP Top 10. Start in Detection to learn real traffic, then switch to Prevention. Never block blind.</p>
 
@@ -360,42 +363,16 @@ AzureDiagnostics
     </div>
   </section>
 
-  <section id="challenge">
-    <div class="sec-eyebrow">Group challenge · ~30 min</div>
-    <h2 class="sec-title">Red team vs Blue team</h2>
-    <p class="sec-intro">Pairs share one lab. Red attacks and hunts for bypasses; Blue detects and patches with Terraform custom rules. The instructor runs a steady "real user" at one request per second — block it, and Blue loses points. That's the real cost of a WAF: false positives.</p>
-    <div class="challenge">
-      <div class="round">
-        <div class="r">ROUND 1 · 10 MIN · DETECTION</div>
-        <h4>Spot the attack</h4>
-        <p>Red sends 5 attacks in any order. Blue finds each one in the logs and names the rule ID that caught it.</p>
-      </div>
-      <div class="round">
-        <div class="r">ROUND 2 · 10 MIN · PREVENTION</div>
-        <h4>Find a bypass</h4>
-        <p>Red tries to sneak a payload past — encoding, mixed case, moving it to a header or cookie. Blue closes each gap with a Terraform custom rule.</p>
-      </div>
-      <div class="round">
-        <div class="r">ROUND 3 · 5 MIN · RATE LIMIT</div>
-        <h4>Stop the flood, keep the user</h4>
-        <p>Red bursts traffic. Blue tunes the rate limit without blocking the instructor's real user at 1 request per second.</p>
-      </div>
-    </div>
-    <div class="scoring">
-      <div class="s"><b class="blue">+1 Blue</b> per attack named with its rule ID</div>
-      <div class="s"><b class="red">+2 Red</b> per bypass that gets a 200 in Prevention</div>
-      <div class="s"><b class="blue">+2 Blue</b> per bypass closed in Terraform</div>
-      <div class="s"><b class="red">−3 Blue</b> if the real user gets a 403</div>
-    </div>
-  </section>
-
   <section id="cleanup" style="border-bottom:none;">
     <div class="sec-eyebrow">Wrap up</div>
     <h2 class="sec-title">Destroy it, then talk about it</h2>
-    <p class="sec-intro">Always tear it down — the gateway bills by the hour. Then debrief the lesson that matters most.</p>
+    <p class="sec-intro">Always tear it down — the gateway bills by the hour. One command does every phase, then debrief the lesson that matters most.</p>
     <div class="code" style="max-width:560px;">
       <button class="copy">copy</button>
-      <pre><span class="c"># every team, every phase folder you deployed</span>
+      <pre><span class="c"># every phase you deployed, in one go</span>
+./destroy-all.sh team1
+
+<span class="c"># or a single phase</span>
 <span class="k">terraform</span> destroy -var=<span class="s">"prefix=team1"</span></pre>
     </div>
     <div class="callout">
@@ -408,7 +385,7 @@ AzureDiagnostics
 <footer class="wrap">
   <div class="foot">
     <span>Companion to the deck <strong style="color:var(--fg)">"From the Edge to Your App."</strong> Terraform lives in <code>lab/azure/</code>.</span>
-    <span>Azure first · AWS equivalents noted per phase</span>
+    <span>Azure first · azurerm ~&gt; 5.0 · AWS equivalents noted per phase</span>
   </div>
 </footer>
 
@@ -428,15 +405,16 @@ AzureDiagnostics
     });
   })();
 
+  var esc = function (s) { return String(s).replace(/[&<>\"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); };
+
   // ---- data ----
   var STOPS = [
     { n: "", nm: "User", sub: "", defense: false },
     { n: "01", nm: "DNS + CDN", sub: "edge", defense: true, target: "phase-1" },
-    { n: "02", nm: "DDoS", sub: "flood shield", defense: true, target: "phase-2" },
-    { n: "03", nm: "WAF", sub: "reads HTTP", defense: true, target: "phase-3" },
-    { n: "04", nm: "Load balancer", sub: "L4 / L7", defense: true, target: "phase-4" },
-    { n: "05", nm: "API gateway", sub: "auth + limits", defense: true, target: "phase-5" },
-    { n: "06", nm: "Your app", sub: "no public IP", defense: false, final: true, target: "phase-6" }
+    { n: "02", nm: "WAF", sub: "reads HTTP", defense: true, target: "phase-2" },
+    { n: "03", nm: "Load balancer", sub: "L4 / L7", defense: true, target: "phase-3" },
+    { n: "04", nm: "API gateway", sub: "auth + limits", defense: true, target: "phase-4" },
+    { n: "05", nm: "Your app", sub: "no public IP", defense: false, final: true, target: "phase-5" }
   ];
 
   var PLAN = [
@@ -444,81 +422,114 @@ AzureDiagnostics
     { k: "MOVE 2", t: "Attack", d: "curl SQLi, XSS, traversal, scanner" },
     { k: "MOVE 3", t: "Read logs", d: "find every hit in Log Analytics" },
     { k: "MOVE 4", t: "Prevent", d: "flip one var, attack again → 403" },
-    { k: "MOVE 5", t: "Red vs Blue", d: "bypass hunt + rate-limit tuning" },
+    { k: "MOVE 5", t: "Rate limit", d: "burst traffic, watch 200s turn 403" },
     { k: "MOVE 6", t: "Destroy", d: "terraform destroy, debrief" }
   ];
 
   var PHASES = [
-    { id: "phase-1", num: "1", layer: "Layer 1 · the edge", title: "DNS + CDN", what: "DNS turns your name into an address; the CDN caches content near the user and hides your origin's real address, so most traffic never reaches you. The edge handles reach and volume, not payloads.",
+    { id: "phase-1", num: "1", layer: "Layer 1 · the edge", title: "DNS + CDN",
+      what: "DNS turns your name into an address; the CDN caches content near the user and hides your origin's real address, so most traffic never reaches you.",
+      detail: "The lookup resolves your name to the Front Door edge, not your server. Front Door answers from a point-of-presence near the user and only forwards cache misses to your origin — whose real address never appears in public DNS.",
       azure: "Azure Front Door + DNS", aws: "Route 53 + CloudFront", time: "~3–5 min", cost: "pennies/hr",
-      cmd: "cd phase-1-dns-cdn\nterraform apply -var=\"prefix=team1\"" },
-    { id: "phase-2", num: "2", layer: "Layer 2 · volume", title: "DDoS Protection", what: "A DDoS attack is not clever, just huge. The cloud absorbs the flood on infrastructure far larger than yours, scrubs it upstream, and passes only clean traffic through.",
-      azure: "Azure DDoS Protection", aws: "AWS Shield", time: "~2 min", cost: "~$2,900/mo", costly: true,
-      cmd: "cd phase-2-ddos\n# the plan bills monthly — deploy, read, DESTROY\nterraform apply -var=\"prefix=team1\" \\\n  -var=\"i_understand_ddos_billing=true\"" },
-    { id: "phase-3", num: "3", layer: "Layer 3 · the WAF", title: "WAF on Application Gateway", what: "The centerpiece. An L7 load balancer hosting a WAF policy — OWASP 3.2 rules plus custom scanner and rate-limit rules — in front of a private container app with no public IP. Detection learns, Prevention blocks.",
-      azure: "App Gateway WAF_v2", aws: "AWS WAF + ALB", time: "~6–10 min", cost: "~$0.45/hr", core: true,
-      cmd: "cd phase-3-waf-appgw\nterraform apply -var=\"prefix=team1\" \\\n  -var=\"waf_mode=Detection\"" },
-    { id: "phase-4", num: "4", layer: "Layer 4 · distribution", title: "Load Balancer (L4)", what: "Spreads traffic across healthy backends by IP and port, and skips any that fail — fast and simple, but blind to what the request contains. The L7 flavor that understands HTTP is Phase 3.",
+      cmd: "cd phase-1-dns-cdn\nterraform apply -var=\"prefix=team1\"",
+      flow: [ { t: "User" }, { t: "DNS", s: "name → IP", k: "accent" }, { t: "Front Door", s: "CDN edge", k: "accent", badge: { t: "cache", k: "good" } }, { t: "Origin", s: "hidden" } ] },
+
+    { id: "phase-2", num: "2", layer: "Layer 2 · the WAF", title: "WAF on Application Gateway", core: true,
+      what: "The centerpiece. An L7 load balancer hosting a WAF policy — OWASP 3.2 rules plus custom scanner and rate-limit rules — in front of a private container app with no public IP.",
+      detail: "The gateway reads the full HTTP request and matches it against OWASP rules plus your own. A hit is blocked with 403 in Prevention (or just logged in Detection); clean traffic is forwarded to the app's private IP. Every decision is mirrored to Log Analytics.",
+      azure: "App Gateway WAF_v2", aws: "AWS WAF + ALB", time: "~6–10 min", cost: "~$0.45/hr",
+      cmd: "cd phase-2-waf-appgw\nterraform apply -var=\"prefix=team1\" \\\n  -var=\"waf_mode=Detection\"",
+      flow: [ { t: "curl", s: "attacker", k: "threat" }, { t: "App Gateway", s: "WAF_v2 · L7", k: "accent", badge: { t: "403", k: "bad" } }, { t: "Private app", s: "no public IP", k: "app" } ] },
+
+    { id: "phase-3", num: "3", layer: "Layer 3 · distribution", title: "Load Balancer (L4)",
+      what: "Spreads traffic across healthy backends by IP and port, and skips any that fail — fast and simple, but blind to what the request contains. The L7 flavor that understands HTTP is Phase 2.",
+      detail: "An L4 rule forwards port 80 across a pool of healthy backends, chosen by IP and port — it never reads the HTTP payload. The health probe drops any instance that stops answering, so traffic skips a dead box without a blip.",
       azure: "Azure Load Balancer", aws: "Network Load Balancer", time: "~3–5 min", cost: "pennies/hr",
-      cmd: "cd phase-4-load-balancer\nterraform apply -var=\"prefix=team1\"" },
-    { id: "phase-5", num: "5", layer: "Layer 5 · the front desk", title: "API Gateway", what: "Checks who you are (keys and tokens) and how much you can call (rate limits and quotas), behind one watched door. Here: API Management on the Consumption tier — 401 without a key, 429 over the limit.",
+      cmd: "cd phase-3-load-balancer\nterraform apply -var=\"prefix=team1\"",
+      flow: [ { t: "Client" }, { t: "Load Balancer", s: "L4 · IP:port", k: "accent" }, { t: "app-0 / app-1", s: "health-probed", k: "app" } ] },
+
+    { id: "phase-4", num: "4", layer: "Layer 4 · the front desk", title: "API Gateway",
+      what: "Checks who you are (keys and tokens) and how much you can call (rate limits and quotas), behind one watched door. Here: API Management on the Consumption tier.",
+      detail: "The gateway checks the subscription key before anything reaches the backend — no key is a 401. A rate-limit policy caps each caller (5/min in the lab); the one over the line gets a 429. One watched door, with metrics and logs in a single place.",
       azure: "Azure API Management", aws: "Amazon API Gateway", time: "~5–10 min", cost: "pay/call",
-      cmd: "cd phase-5-api-gateway\nterraform apply -var=\"prefix=team1\"" },
-    { id: "phase-6", num: "6", layer: "The destination", title: "The private app", what: "Your code — a container with no public IP, in a private subnet. The easiest way around a WAF is to skip it, so the app never gets its own public door. Deploy it alone and prove there's nothing to curl.",
-      azure: "Container Instances", aws: "Private subnet, no IGW", time: "~1–2 min", cost: "pennies/hr", final: true,
-      cmd: "cd phase-6-private-app\nterraform apply -var=\"prefix=team1\"" }
+      cmd: "cd phase-4-api-gateway\nterraform apply -var=\"prefix=team1\"",
+      flow: [ { t: "Client", s: "+ API key" }, { t: "API Management", s: "auth + limits", k: "accent", badge: { t: "401 / 429", k: "bad" } }, { t: "Backend", s: "service" } ] },
+
+    { id: "phase-5", num: "5", layer: "The destination", title: "The private app", final: true,
+      what: "Your code — a container with no public IP, in a private subnet. The easiest way around a WAF is to skip it, so the app never gets its own public door.",
+      detail: "The app holds a private IP inside the VNet and has no public endpoint or DNS name. The only path to it is from inside the network — exactly where the gateway in Phase 2 sits. There is nothing on the internet to attack directly.",
+      azure: "Container Instances", aws: "Private subnet, no IGW", time: "~1–2 min", cost: "pennies/hr",
+      cmd: "cd phase-5-private-app\nterraform apply -var=\"prefix=team1\"",
+      flow: [ { t: "Internet", s: "no way in", k: "threat", badge: { t: "blocked", k: "bad" } }, { t: "Private subnet", s: "VNet only" }, { t: "App", s: "private IP", k: "app" } ] }
   ];
 
-  var esc = function (s) { return s.replace(/[&<>\"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); };
+  // ---- flow diagram generator ----
+  function flowSVG(nodes) {
+    var bw = 120, bh = 52, gap = 46, sx = 10, by = 42, cy = by + bh / 2, H = 116;
+    var W = sx * 2 + nodes.length * bw + (nodes.length - 1) * gap;
+    var o = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="request flow for this layer" preserveAspectRatio="xMidYMid meet">';
+    nodes.forEach(function (n, i) {
+      var x = sx + i * (bw + gap), cx = x + bw / 2;
+      if (i < nodes.length - 1) {
+        var nx = sx + (i + 1) * (bw + gap), a1 = x + bw + 5, a2 = nx - 9;
+        o += '<line class="dg-line" x1="' + a1 + '" y1="' + cy + '" x2="' + a2 + '" y2="' + cy + '" stroke-width="1.6"/>';
+        o += '<polygon class="dg-arrow" points="' + a2 + ',' + cy + ' ' + (a2 - 8) + ',' + (cy - 4.5) + ' ' + (a2 - 8) + ',' + (cy + 4.5) + '"/>';
+      }
+      if (n.badge) {
+        var t = n.badge.t, pw = t.length * 7 + 18, px = cx - pw / 2;
+        o += '<rect class="dg-badge-' + (n.badge.k || "good") + '" x="' + px.toFixed(1) + '" y="6" width="' + pw + '" height="20" rx="10"/>';
+        o += '<text class="dg-badge-txt" x="' + cx + '" y="20" text-anchor="middle" font-size="11">' + esc(t) + "</text>";
+      }
+      o += '<rect class="dg-box ' + (n.k || "") + '" x="' + x + '" y="' + by + '" width="' + bw + '" height="' + bh + '" rx="11"/>';
+      o += '<text class="dg-t" x="' + cx + '" y="' + (n.s ? by + 22 : by + 30) + '" text-anchor="middle" font-size="13.5">' + esc(n.t) + "</text>";
+      if (n.s) o += '<text class="dg-s" x="' + cx + '" y="' + (by + 38) + '" text-anchor="middle" font-size="10.5">' + esc(n.s) + "</text>";
+    });
+    return o + "</svg>";
+  }
 
   // ---- render journey rail ----
   (function () {
-    var rail = document.getElementById("rail"), html = "";
+    var html = "";
     STOPS.forEach(function (s, i) {
       var tag = s.target ? "a" : "div", href = s.target ? ' href="#' + s.target + '"' : "";
-      html += '<div class="node">';
-      html += "<" + tag + ' class="stop"' + href + ' data-defense="' + !!s.defense + '" data-final="' + !!s.final + '">';
-      html += '<div class="num">' + (s.n || "·") + "</div>";
-      html += '<div class="nm">' + esc(s.nm) + "</div>";
+      html += '<div class="node"><' + tag + ' class="stop"' + href + ' data-defense="' + !!s.defense + '" data-final="' + !!s.final + '">';
+      html += '<div class="num">' + (s.n || "·") + "</div><div class=\"nm\">" + esc(s.nm) + "</div>";
       if (s.sub) html += '<div class="sub">' + esc(s.sub) + "</div>";
       html += "</" + tag + "></div>";
       if (i < STOPS.length - 1) html += '<div class="link"></div>';
     });
-    rail.innerHTML = html;
+    document.getElementById("rail").innerHTML = html;
   })();
 
   // ---- render session plan ----
-  (function () {
-    document.getElementById("plan-grid").innerHTML = PLAN.map(function (p) {
-      return '<div class="step"><div class="k">' + esc(p.k) + '</div><div class="t">' + esc(p.t) + '</div><div class="d">' + esc(p.d) + "</div></div>";
-    }).join("");
-  })();
+  document.getElementById("plan-grid").innerHTML = PLAN.map(function (p) {
+    return '<div class="step"><div class="k">' + esc(p.k) + '</div><div class="t">' + esc(p.t) + '</div><div class="d">' + esc(p.d) + "</div></div>";
+  }).join("");
 
   // ---- render phases ----
-  (function () {
-    document.getElementById("phase-list").innerHTML = PHASES.map(function (p) {
-      var cls = "phase" + (p.core ? " core" : "") + (p.final ? " phase-final" : "");
-      var tags = '<span class="layer-tag">' + esc(p.layer) + "</span>";
-      if (p.core) tags += '<span class="layer-tag tag-core">core lab</span>';
-      if (p.costly) tags += '<span class="layer-tag tag-cost">costs money</span>';
-      var lines = p.cmd.split("\n").map(function (ln) {
-        if (ln.trim().indexOf("#") === 0) return '<span class="c">' + esc(ln) + "</span>";
-        return esc(ln).replace(/^(cd|terraform)\b/, '<span class="k">$1</span>').replace(/(&quot;[^&]*?&quot;)/g, '<span class="s">$1</span>');
-      }).join("\n");
-      return '<article class="phase ' + cls + '" id="' + p.id + '">' +
-        '<div class="phase-badge">' + p.num + "</div>" +
-        '<div><div class="phase-head"><h3>' + esc(p.title) + "</h3>" + tags + "</div>" +
-        '<p class="what">' + esc(p.what) + "</p>" +
-        '<div class="meta">' +
-          '<div class="m"><span class="lab">Azure</span><span class="val azure">' + esc(p.azure) + "</span></div>" +
-          '<div class="m"><span class="lab">AWS equivalent</span><span class="val">' + esc(p.aws) + "</span></div>" +
-          '<div class="m"><span class="lab">Deploy time</span><span class="val">' + esc(p.time) + "</span></div>" +
-          '<div class="m"><span class="lab">Cost running</span><span class="val">' + esc(p.cost) + "</span></div>" +
-        "</div>" +
-        '<div class="code"><button class="copy">copy</button><pre>' + lines + "</pre></div>" +
-        "</div></article>";
-    }).join("");
-  })();
+  document.getElementById("phase-list").innerHTML = PHASES.map(function (p) {
+    var cls = "phase" + (p.core ? " core" : "") + (p.final ? " phase-final" : "");
+    var tags = '<span class="layer-tag">' + esc(p.layer) + "</span>";
+    if (p.core) tags += '<span class="layer-tag tag-core">core lab</span>';
+    var lines = p.cmd.split("\n").map(function (ln) {
+      if (ln.trim().indexOf("#") === 0) return '<span class="c">' + esc(ln) + "</span>";
+      return esc(ln).replace(/^(cd|terraform)\b/, '<span class="k">$1</span>').replace(/(&quot;[^&]*?&quot;)/g, '<span class="s">$1</span>');
+    }).join("\n");
+    return '<article class="phase ' + cls + '" id="' + p.id + '">' +
+      '<div class="phase-badge">' + p.num + "</div>" +
+      '<div><div class="phase-head"><h3>' + esc(p.title) + "</h3>" + tags + "</div>" +
+      '<p class="what">' + esc(p.what) + "</p>" +
+      '<div class="diagram">' + flowSVG(p.flow) + "</div>" +
+      '<p class="detail">' + esc(p.detail) + "</p>" +
+      '<div class="meta">' +
+        '<div class="m"><span class="lab">Azure</span><span class="val azure">' + esc(p.azure) + "</span></div>" +
+        '<div class="m"><span class="lab">AWS equivalent</span><span class="val">' + esc(p.aws) + "</span></div>" +
+        '<div class="m"><span class="lab">Deploy time</span><span class="val">' + esc(p.time) + "</span></div>" +
+        '<div class="m"><span class="lab">Cost running</span><span class="val">' + esc(p.cost) + "</span></div>" +
+      "</div>" +
+      '<div class="code"><button class="copy">copy</button><pre>' + lines + "</pre></div>" +
+      "</div></article>";
+  }).join("");
 
   // ---- WAF tabs ----
   (function () {

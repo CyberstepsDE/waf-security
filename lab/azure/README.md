@@ -7,7 +7,7 @@ phase, the gauntlet a request survives before it reaches your code — on Azure.
 > only ever meets clean traffic. Learn the layer, and the cloud product is just a name.
 
 Each phase is a **self-contained Terraform project** you can deploy and destroy on its
-own. Phase 3 is the heart of the lab (WAF on Application Gateway in front of a private
+own. Phase 2 is the heart of the lab (WAF on Application Gateway in front of a private
 app) and works end-to-end. The others let you stand up and poke at each remaining layer.
 
 ---
@@ -17,13 +17,16 @@ app) and works end-to-end. The others let you stand up and poke at each remainin
 | # | Layer | What it does | Azure service | AWS equivalent | Folder |
 |---|-------|--------------|---------------|----------------|--------|
 | 1 | DNS + CDN (edge) | Caches near users, hides your origin | Azure DNS + Front Door | Route 53 + CloudFront | [`phase-1-dns-cdn/`](./phase-1-dns-cdn/) |
-| 2 | DDoS | Absorbs and scrubs traffic floods | DDoS Protection | AWS Shield | [`phase-2-ddos/`](./phase-2-ddos/) |
-| 3 | **WAF (L7 LB)** | **Reads HTTP, blocks OWASP attacks** | **App Gateway WAF_v2** | **AWS WAF + ALB** | [`phase-3-waf-appgw/`](./phase-3-waf-appgw/) |
-| 4 | Load balancer (L4) | Spreads traffic by IP/port | Azure Load Balancer | NLB | [`phase-4-load-balancer/`](./phase-4-load-balancer/) |
-| 5 | API gateway | Checks auth, rate-limits callers | API Management | API Gateway | [`phase-5-api-gateway/`](./phase-5-api-gateway/) |
-| 6 | The app | The thing being protected — no public IP | Container Instances | — | [`phase-6-private-app/`](./phase-6-private-app/) |
+| 2 | **WAF (L7 LB)** | **Reads HTTP, blocks OWASP attacks** | **App Gateway WAF_v2** | **AWS WAF + ALB** | [`phase-2-waf-appgw/`](./phase-2-waf-appgw/) |
+| 3 | Load balancer (L4) | Spreads traffic by IP/port | Azure Load Balancer | NLB | [`phase-3-load-balancer/`](./phase-3-load-balancer/) |
+| 4 | API gateway | Checks auth, rate-limits callers | API Management | API Gateway | [`phase-4-api-gateway/`](./phase-4-api-gateway/) |
+| 5 | The app | The thing being protected — no public IP | Container Instances | — | [`phase-5-private-app/`](./phase-5-private-app/) |
 
-**Phase 3 is the deck's `lab/azure/main.tf`.** It is the one to run if you only run one.
+**Phase 2 is the deck's `lab/azure/main.tf`.** It is the one to run if you only run one.
+
+> The DDoS layer from the deck isn't built here — Azure DDoS Network Protection bills a flat
+> ~$2,900/month per plan, which isn't worth it for a lab. The deck still covers it conceptually;
+> on Azure it's one toggle (`ddos_protection_plan { enable = true }`) on a VNet.
 
 ---
 
@@ -37,8 +40,7 @@ app) and works end-to-end. The others let you stand up and poke at each remainin
 - **Set your subscription** so Terraform knows where to build:
 
   ```bash
-  export ARM_SUBSCRIPTION_ID=<sandbox-subscription-id>
-  # or: az account set --subscription <sandbox-subscription-id>
+  export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
   ```
 
 Every phase follows the same loop:
@@ -51,37 +53,35 @@ terraform apply -var="prefix=team1"
 terraform destroy -var="prefix=team1"
 ```
 
+Or do the lot at once with the helper scripts:
+
+```bash
+./create-all.sh team1     # deploy every phase
+./destroy-all.sh team1    # tear every phase down
+```
+
 ---
 
 ## Cost & time — read before you deploy
 
 Everything bills by the hour. **Destroy the same day.**
 
-| Phase | Deploy time | Rough cost while running | Leave running? |
-|-------|-------------|--------------------------|----------------|
-| 1 · Front Door | ~3–5 min | Pennies/hour (Standard) | OK briefly |
-| 2 · **DDoS Protection** | ~2 min | **~$2,900 / month per plan** | ❌ **Destroy immediately** |
-| 3 · App Gateway WAF | ~6–10 min | ~$0.40–0.50 / hour | Same day only |
-| 4 · Load Balancer | ~3–5 min | Pennies/hour | Same day only |
-| 5 · API Management (Consumption) | ~5–10 min | Pay-per-call, near-zero idle | OK briefly |
-| 6 · Private app | ~1–2 min | Pennies/hour | Same day only |
+| Phase | Deploy time | Rough cost while running |
+|-------|-------------|--------------------------|
+| 1 · Front Door | ~3–5 min | pennies/hour (Standard) |
+| 2 · App Gateway WAF | ~6–10 min | ~$0.40–0.50 / hour |
+| 3 · Load Balancer | ~3–5 min | pennies/hour |
+| 4 · API Management (Consumption) | ~5–10 min | pay-per-call, near-zero idle |
+| 5 · Private app | ~1–2 min | pennies/hour |
 
-> ⚠️ **Phase 2 (DDoS Network Protection) is the expensive one.** A protection *plan* is
-> billed at a flat monthly rate the moment it exists. It is included so you can see the
-> one line that enables it — deploy it, read the output, then `terraform destroy`.
+The provider is pinned to **azurerm `~> 5.0`**.
 
 ---
 
 ## Tear everything down
 
-Run `terraform destroy -var="prefix=team1"` in **each** phase folder you deployed. A quick
-sweep from `lab/azure/`:
-
-```bash
-for d in phase-*/ ; do
-  ( cd "$d" && [ -f terraform.tfstate ] && terraform destroy -auto-approve -var="prefix=team1" )
-done
-```
+`./destroy-all.sh team1`, or run `terraform destroy -var="prefix=team1"` in each phase folder
+you deployed.
 
 ---
 
