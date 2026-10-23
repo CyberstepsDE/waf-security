@@ -41,10 +41,16 @@ variable "origin_host_name" {
   type        = string
   description = <<-DESC
     Public FQDN the CDN sits in front of. Default is a public HTTPS site so this
-    deploys and works on its own. To chain it onto Phase 3, set this to that
-    gateway's public IP and see the notes in README (switch the origin to HTTP).
+    deploys and works on its own. To chain it onto Phase 2, set this to that
+    gateway's FQDN and set origin_http_only = true.
   DESC
   default     = "learn.microsoft.com"
+}
+
+variable "origin_http_only" {
+  type        = bool
+  description = "Set true when the origin only serves HTTP (e.g. the Phase 2 gateway on :80). Front Door still serves HTTPS to clients with its own managed cert."
+  default     = false
 }
 
 variable "dns_zone_name" {
@@ -102,8 +108,8 @@ resource "azurerm_cdn_frontdoor_origin_group" "fd" {
 
   health_probe {
     path                = "/"
-    protocol            = "Https"
-    request_type        = "HEAD"
+    protocol            = var.origin_http_only ? "Http" : "Https"
+    request_type        = "GET"
     interval_in_seconds = 100
   }
 }
@@ -114,8 +120,8 @@ resource "azurerm_cdn_frontdoor_origin" "fd" {
   enabled                       = true
 
   # For a public HTTPS origin keep the cert check on. For an HTTP-only origin
-  # (e.g. the Phase 3 gateway on :80) set this to false — see README.
-  certificate_name_check_enabled = true
+  # (e.g. the Phase 2 gateway on :80) it is turned off automatically.
+  certificate_name_check_enabled = var.origin_http_only ? false : true
 
   host_name          = var.origin_host_name
   origin_host_header = var.origin_host_name
@@ -133,7 +139,7 @@ resource "azurerm_cdn_frontdoor_route" "fd" {
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
-  forwarding_protocol    = "HttpsOnly"
+  forwarding_protocol    = var.origin_http_only ? "HttpOnly" : "HttpsOnly"
   https_redirect_enabled = true
   link_to_default_domain = true
 
