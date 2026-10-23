@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
@@ -90,8 +94,15 @@ resource "azurerm_cdn_frontdoor_profile" "fd" {
   tags                = local.tags
 }
 
+# Endpoint hostnames are global, so add a random suffix for uniqueness.
+resource "random_string" "ep" {
+  length  = 5
+  special = false
+  upper   = false
+}
+
 resource "azurerm_cdn_frontdoor_endpoint" "fd" {
-  name                     = "${local.name}-ep"
+  name                     = "${local.name}-ep-${random_string.ep.result}"
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.fd.id
   tags                     = local.tags
 }
@@ -144,7 +155,7 @@ resource "azurerm_cdn_frontdoor_route" "fd" {
   link_to_default_domain = true
 
   cache {
-    compression_enabled           = true
+    compression_enabled           = false
     query_string_caching_behavior = "IgnoreQueryString"
   }
 }
